@@ -1,0 +1,19 @@
+
+- hosts: {{ ctx.source.node.name }}
+  # remote_user: root
+  tasks:
+    - name: downloading nodecellar archive
+      get_url: url=https://github.com/cloudify-cosmo/nodecellar/archive/master.tar.gz dest=/tmp/{{ ctx.execution_id }}/master.tar.gz
+    - name: Unarchiving Nodecellar Package
+      unarchive: src=/tmp/{{ ctx.execution_id }}/master.tar.gz dest=/tmp/{{ ctx.execution_id }}/
+    - name: installing nodecellar dependencies
+      npm: path=/tmp/{{ ctx.execution_id }}/nodecellar-master/
+    - name: running nodecellar
+      command: forever start /tmp/{{ ctx.execution_id }}/nodecellar-master/server.js
+      environment:
+        NODECELLAR_PORT: {{ ctx.source.node.properties.port }}
+        MONGO_HOST: {{ ctx.source.instance.runtime_properties.mongo_host }}
+        MONGO_PORT: {{ ctx.source.instance.runtime_properties.mongo_port }}
+      poll: 0
+  roles:
+    - ansible-role-nodejs 

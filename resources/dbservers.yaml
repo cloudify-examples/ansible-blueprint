@@ -1,0 +1,7 @@
+# /tmp/deployment/ansible/dbservers.yaml
+
+- hosts: {{ ctx.source.node.name }}
+  roles:
+    - Stouts.mongodb
+  vars:
+    mongodb_conf_port: {{ ctx.source.node.properties.port }}
