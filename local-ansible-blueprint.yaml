@@ -1,0 +1,83 @@
+###########################################################
+# This Blueprint installs the nodecellar application
+# on an existing host.
+###########################################################
+
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
+  - http://www.getcloudify.org/spec/diamond-plugin/1.3.3/plugin.yaml
+  - types/ansible-types.yaml
+
+#####################################################################################
+# inputs section allows the user to use same
+# blueprint for creating different deployments, each one
+# with its own parameters.
+# to specify deployment inputs run:
+#   - cfy deployments create -b <blueprint_id> -d <deployment_id> -i inputs.json
+#####################################################################################
+
+inputs:
+
+  host_ip:
+    description: >
+      The ip of the host the application will be deployed on
+
+  agent_user:
+    description: >
+      The agent user on the machine.
+
+  agent_private_key_path:
+    description: >
+      The path to the ssh key on the machine.
+
+node_templates:
+
+  ansible:
+    type: ansible.nodes.Ansible
+    properties:
+      playbook_file_name: main.yaml
+    relationships:
+      - type: ansible.relationships.contained_in
+        target: host
+
+  mongod:
+    type: ansible.nodes.MongoDatabase
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+      - type: ansible.relationships.provisioned_by
+        target: ansible
+
+  nodejs:
+    type: ansible.nodes.NodecellarApplicationModule
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+      - type: ansible.relationships.provisioned_by
+        target: ansible
+      - type: node_connected_to_mongo
+        target: mongod
+
+  host:
+    type: cloudify.nodes.Compute
+    properties:
+      install_agent: false
+      ip: { get_input: host_ip }
+      cloudify_agent:
+        user: { get_input: agent_user }
+        key: { get_input: agent_private_key_path }
+
+###########################################################
+# This outputs section exposes the application endpoint.
+# You can access it by running:
+#   - cfy deployments -d <deployment_id> outputs
+###########################################################
+
+outputs:
+  endpoint:
+    description: Web application endpoint
+    value:
+      ip_address: { get_property: [ host, ip ] }
+      port: 8080

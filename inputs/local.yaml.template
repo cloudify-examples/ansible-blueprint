@@ -1,0 +1,5 @@
+# If you are using the vagrant box
+
+host_ip: 10.10.1.10
+agent_user: vagrant
+agent_private_key_path: ~/.ssh/agent_key.pem
