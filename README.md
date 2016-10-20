@@ -1,3 +1,5 @@
+[![Build Status](https://circleci.com/gh/cloudify-examples/ansible-blueprint.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/cloudify-examples/ansible-blueprint)
+
 # cloudify-nodecellar-example-ansible
 A spin on the Cloudify-Nodecellar-Example using Ansible instead of bash scripts.
 
