@@ -1,0 +1,8 @@
+image: ''
+flavor: ''
+agent_user: ''
+keystone_username: ''
+keystone_password: ''
+keystone_tenant_name: ''
+keystone_url: ''
+region: ''
