@@ -6,34 +6,59 @@ A spin on the Cloudify-Nodecellar-Example using Ansible instead of bash scripts.
 ## Notes
 
 * This is a community contributed example.
-* Tested only with Cloudify 3.3m4
+* Tested only with Cloudify 3.3m4 and Cloudify 3.4
+
+## Prerequisites for non-local ##
+
++ OpenStack manager/ AWS manager
++ GCC installed on your manager (OpenStack only)
 
 ## Instructions
 
-Download the Vagrant Box from GetCloudify.org: http://getcloudify.org/guide/3.2/quickstart.html#important-before-you-begin.
+1) upload the blueprint (openstack/ aws) to your manager:
+```
+cfy blueprints upload -p ../ansible-bluprint/youre-manager-ansible-blueprint.yaml -b ansible
+```
+
+2) create a deployment based on your blueprint inputs file:
+```
+cfy deployments create -b ansible -i ../ansible-bluprint/inputs/youre-manager-ansible-blueprint-inputs.yaml -d dep1
+```
+
+3) start the install workflow:
+```
+cfy executions start -d dep1 -w install
+```
+
+## Local instructions
+
+Download the Vagrant Box from GetCloudify.org:
+Cloudify 3.3m4- http://getcloudify.org/guide/3.2/quickstart.html#important-before-you-begin.
+Cloudify 3.4- http://docs.getcloudify.org/3.4.1/manager/getting-started/
 
 These simple commands should start the deployment on your vagrant machine:
 
-`
-  cd /vagrant
-`
-`
-  git clone https://github.com/cloudify-examples/cloudify-nodecellar-example-ansible.git
-`
+```
+1) cd /vagrant
+```
 
-`
-  cd cloudify-nodecellar-example-ansible
-`
+```
+2) git clone https://github.com/cloudify-examples/cloudify-nodecellar-example-ansible.git
+```
 
-`
-  git checkout {branch or tag id}
-`
+```
+3) cd cloudify-nodecellar-example-ansible
+```
 
-`
-  cfy local init --install-plugins -p local-ansible-blueprint.yaml -i inputs/local.yaml.template
-`
+```
+4) git checkout {branch or tag id}
+```
 
-`
-  cfy local execute -w install
-`
+```
+5) cfy local init --install-plugins -p local-ansible-blueprint.yaml -i inputs/local.yaml.template
+```
+
+```
+6) cfy local execute -w install
+```
 

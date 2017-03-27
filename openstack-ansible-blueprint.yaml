@@ -1,0 +1,145 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/2.0/plugin.yaml
+  - http://www.getcloudify.org/spec/diamond-plugin/1.3.5/plugin.yaml
+  - types/openstack-ansible-types.yaml
+
+#####################################################################################
+# inputs section allows the user to use same
+# blueprint for creating different deployments, each one
+# with its own parameters.
+# to specify deployment inputs run:
+#   - cfy deployments create -b <blueprint_id> -d <deployment_id> -i inputs.json
+#####################################################################################
+
+inputs:
+
+  image:
+    description: >
+      Image to be used when launching agent VM's
+    type: string
+    default: ''
+
+  flavor:
+    description: >
+      Flavor of the agent VM's
+    type: string
+    default: ''
+
+  agent_user:
+    description: >
+      User for connecting to agent VM's
+    type: string
+    default: ''
+
+  agent_private_key_path:
+    default: /root/.ssh/agent_key.pem
+    type: string
+
+  keystone_username:
+    default: ''
+    type: string
+
+  keystone_password:
+    default: ''
+    type: string
+
+  keystone_tenant_name:
+    default: ''
+    type: string
+
+  keystone_url:
+    default: ''
+    type: string
+
+  region:
+    default: ''
+    type: string
+
+  openstack_configuration:
+    default:
+      username: { get_input: keystone_username }
+      password: { get_input: keystone_password }
+      tenant_name: { get_input: keystone_tenant_name }
+      auth_url: { get_input: keystone_url }
+      region: { get_input: region }
+
+node_templates:
+
+  ansible:
+      type: ansible.nodes.Ansible
+      properties:
+        playbook_file_name: main.yaml
+        public_ip: { get_attribute: [application_ip, floating_ip_address] }
+      relationships:
+        - type: ansible.relationships.contained_in
+          target: host
+
+  mongod:
+    type: ansible.nodes.MongoDatabase
+    properties:
+      public_ip: { get_attribute: [application_ip, floating_ip_address] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+      - type: ansible.relationships.provisioned_by
+        target: ansible
+
+  nodejs:
+    type: ansible.nodes.NodecellarApplicationModule
+    properties:
+      public_ip: { get_attribute: [application_ip, floating_ip_address] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+      - type: ansible.relationships.provisioned_by
+        target: ansible
+      - type: node_connected_to_mongo
+        target: mongod
+
+  host:
+    type: cloudify.openstack.nodes.Server
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      server:
+        image: { get_input: image }
+        flavor: { get_input: flavor }
+      agent_config:
+        user: { get_input: agent_user }
+        key: { get_input: agent_private_key_path}
+        install_method: remote
+    relationships:
+      - target: application_ip
+        type: cloudify.openstack.server_connected_to_floating_ip
+      - target: application_security_group
+        type: cloudify.openstack.server_connected_to_security_group
+
+  application_ip:
+    type: cloudify.openstack.nodes.FloatingIP
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+
+  application_security_group:
+    type: cloudify.openstack.nodes.SecurityGroup
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      security_group:
+        name: openstack_security_group
+      rules:
+        - remote_ip_prefix: 0.0.0.0/0
+          port: 8080
+
+  ###########################################################
+  # This outputs section exposes the application endpoint.
+  # You can access it by running:
+  #   - cfy deployments -d <deployment_id> outputs
+  ###########################################################
+
+outputs:
+  endpoint:
+    description: Web application endpoint
+    value:
+      ip_address: { get_attribute: [application_ip, floating_ip_address] }
+      port: 8080
