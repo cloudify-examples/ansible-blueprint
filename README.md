@@ -4,7 +4,7 @@ A spin on the Cloudify-Nodecellar-Example using Ansible instead of bash scripts.
 ## Notes
 
 * This is a community contributed example.
-* Tested only with Cloudify 3.3m4 and Cloudify 3.4
+* Tested with Cloudify 3.3m4, Cloudify 3.4 and 4.0
 
 ## Prerequisites for non-local ##
 
@@ -15,17 +15,17 @@ A spin on the Cloudify-Nodecellar-Example using Ansible instead of bash scripts.
 
 1) upload the blueprint (openstack/ aws) to your manager:
 ```
-cfy blueprints upload -p ../ansible-bluprint/youre-manager-ansible-blueprint.yaml -b ansible
+cfy blueprints upload ../ansible-bluprint/youre-manager-ansible-blueprint.yaml -b ansible
 ```
 
 2) create a deployment based on your blueprint inputs file:
 ```
-cfy deployments create -b ansible -i ../ansible-bluprint/inputs/youre-manager-ansible-blueprint-inputs.yaml -d dep1
+cfy deployments create -b ansible -i ../ansible-bluprint/inputs/youre-manager-ansible-blueprint-inputs.yaml
 ```
 
 3) start the install workflow:
 ```
-cfy executions start -d dep1 -w install
+cfy executions start -d ansible install
 ```
 
 ## Local instructions
