@@ -22,7 +22,7 @@ cfy blueprints upload ../ansible-bluprint/youre-manager-ansible-blueprint.yaml -
 
 2) create a deployment based on your blueprint inputs file:
 ```
-cfy deployments create -b ansible -i ../ansible-bluprint/inputs/youre-manager-ansible-blueprint-inputs.yaml
+cfy deployments create -b ansible -i ../ansible-bluprint/inputs/youre-manager-ansible-blueprint-inputs.yaml -d ansible-deploy
 ```
 
 3) start the install workflow:
