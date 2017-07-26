@@ -3,10 +3,15 @@
 # Ansible Blueprint
 An example Ansible Blueprint.
 
-## Notes
+*Requirements:*
 
-* This is a community contributed example.
-* Tested with Cloudify 4.1
+- Cloudify Manager
+- AWS or Openstack
+- Fabric, Utilities, Diamond, and AWS or Openstack Plugins.
+- Environment-specific secrets. See [Cloudify Environment Setup](https://github.com/cloudify-examples/cloudify-environment-setup)
+
+This is an example. It creates a new Ansible server, however in most scenarios, you will already have your own Ansible environment. Most of the integration points (uploading playbooks, parsing and updating inventories) will be the same.
+
 
 *Installation:*
 
