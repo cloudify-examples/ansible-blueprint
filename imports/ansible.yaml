@@ -1,0 +1,210 @@
+inputs:
+
+  mongo_version:
+    default: "2.3.8"
+
+  nodejs_version:
+    default: "4.1.1"
+
+  mongo_port:
+    default: "27017"
+
+  nodejs_port:
+    default: "8080"
+
+  mongo_host:
+    default: localhost
+
+  ansible_private_key_file:
+    default: { concat: [ '/home/', { get_input: agent_user }, '/.ssh/key.pem' ] }
+
+  ansible_inventory:
+    default: /etc/ansible/inventory
+
+  ansible_log_path:
+    default: /var/log/ansible.log
+
+data_types:
+
+  cloudify.datatypes.FileResource:
+    properties:
+      resource_path:
+        type: string
+        description: A path, relative to the root blueprint folder, of a file resource.
+        required: true
+      target_path:
+        type: string
+        description: A path to save the file on the target file system.
+        required: false
+      template_variables:
+        description: A dictionary of variables keys and values for rendering the file resource if templating is used.
+        required: false
+
+node_types:
+
+  cloudify.nodes.FileResource:
+    derived_from: cloudify.nodes.Root
+    properties:
+      resource_config:
+        type: cloudify.datatypes.FileResource
+        required: true
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: scripts/render.py
+
+
+  cloudify.nodes.ConfigFile:
+    derived_from: cloudify.nodes.Root
+    properties:
+      file_path:
+        type: string
+        required: true
+      resource_config:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: scripts/config.py
+
+  cloudify.nodes.RegularFile:
+    derived_from: cloudify.nodes.Root
+    properties:
+      resource_config:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: scripts/file.py
+
+node_templates:
+
+  ansible:
+      type: cloudify.nodes.Root
+      relationships:
+        - type: cloudify.relationships.contained_in
+          target: host
+        - type: cloudify.relationships.depends_on
+          target: main.yaml
+        - type: cloudify.relationships.depends_on
+          target: dbservers.yaml
+        - type: cloudify.relationships.depends_on
+          target: webservers.yaml
+        - type: cloudify.relationships.depends_on
+          target: key.pem
+      interfaces:
+        cloudify.interfaces.lifecycle:
+          create:
+            implementation: fabric.fabric_plugin.tasks.run_commands
+            inputs:
+              fabric_env: &fabric_env
+                host_string: { get_attribute: [ host, ip ] }
+                user: { get_input: agent_user }
+                key: { get_secret: agent_key_private }
+              commands:
+                - concat:
+                  - 'ansible-playbook '
+                  - { get_property: [ main.yaml, resource_config, target_path] }
+                  - ' --connection=paramiko'
+          configure:
+            implementation: fabric.fabric_plugin.tasks.run_commands
+            inputs:
+              fabric_env: *fabric_env
+              commands:
+                - concat:
+                  - 'ansible-playbook '
+                  - { get_property: [ dbservers.yaml, resource_config, target_path] }
+                  - ' --connection=paramiko'
+          start:
+            implementation: fabric.fabric_plugin.tasks.run_commands
+            inputs:
+              fabric_env: *fabric_env
+              commands:
+                - concat:
+                  - 'ansible-playbook '
+                  - { get_property: [ webservers.yaml, resource_config, target_path] }
+                  - ' --connection=paramiko'
+
+  webservers.yaml:
+    type: cloudify.nodes.FileResource
+    properties:
+      resource_config:
+        resource_path: resources/webservers.yaml
+        target_path: /etc/ansible/webservers.yaml
+        template_variables:
+          hosts: ansible
+          home_dir: { get_input: agent_user }
+          port: { get_input: nodejs_port }
+          mongo_host: { get_input: mongo_host }
+          mongo_port: { get_input: mongo_port }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+
+  dbservers.yaml:
+    type: cloudify.nodes.FileResource
+    properties:
+      resource_config:
+        resource_path: resources/dbservers.yaml
+        target_path: /etc/ansible/dbservers.yaml
+        template_variables:
+          hosts: ansible
+          port: { get_input: mongo_port }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+
+  main.yaml:
+    type: cloudify.nodes.FileResource
+    properties:
+      resource_config:
+        resource_path: resources/main.yaml
+        target_path: /etc/ansible/main.yaml
+        template_variables:
+          hosts: ansible
+          home_dir: { get_input: agent_user }
+          mongo_ver: { get_input: mongo_version }
+          nodejs_ver: { get_input: nodejs_version }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+
+  inventory:
+    type: cloudify.nodes.ConfigFile
+    properties:
+      file_path: /etc/ansible/inventory
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            resource_config:
+              ansible:
+              - { get_attribute: [ host, ip ] }
+
+  ansible.cfg:
+    type: cloudify.nodes.ConfigFile
+    properties:
+      file_path: /etc/ansible/ansible.cfg
+      resource_config:
+        'defaults':
+          host_key_checking: False
+          private_key_file: { get_input: ansible_private_key_file }
+          inventory: { get_input: ansible_inventory }
+          log_path: { get_input: ansible_log_path }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host
+
+  key.pem:
+    type: cloudify.nodes.RegularFile
+    properties:
+      resource_config:
+        file_path: { get_input: ansible_private_key_file }
+        file_content: { get_secret: agent_key_private }
+        file_permissions: '0600'
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: host

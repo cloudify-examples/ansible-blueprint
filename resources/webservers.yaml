@@ -1,19 +1,22 @@
 
-- hosts: {{ ctx.source.node.name }}
+- hosts: {{ hosts }}
   # remote_user: root
+  sudo: yes
   tasks:
     - name: downloading nodecellar archive
-      get_url: url=https://github.com/cloudify-cosmo/nodecellar/archive/master.tar.gz dest=/tmp/{{ ctx.execution_id }}/master.tar.gz
+      get_url: url=https://github.com/cloudify-cosmo/nodecellar/archive/master.tar.gz dest=/home/{{ home_dir }}/master.tar.gz
     - name: Unarchiving Nodecellar Package
-      unarchive: src=/tmp/{{ ctx.execution_id }}/master.tar.gz dest=/tmp/{{ ctx.execution_id }}/
+      unarchive: remote_src=true src=/home/{{ home_dir }}/master.tar.gz dest=/home/{{ home_dir }}/
     - name: installing nodecellar dependencies
-      npm: path=/tmp/{{ ctx.execution_id }}/nodecellar-master/
+      npm: path=/home/{{ home_dir }}/nodecellar-master/
+    - name: installing npm forever
+      npm: name=forever global=yes
     - name: running nodecellar
-      command: forever start /tmp/{{ ctx.execution_id }}/nodecellar-master/server.js
+      command: forever start /home/{{ home_dir }}/nodecellar-master/server.js
       environment:
-        NODECELLAR_PORT: {{ ctx.source.node.properties.port }}
-        MONGO_HOST: {{ ctx.source.instance.runtime_properties.mongo_host }}
-        MONGO_PORT: {{ ctx.source.instance.runtime_properties.mongo_port }}
+        NODECELLAR_PORT: {{ port }}
+        MONGO_HOST: {{ mongo_host }}
+        MONGO_PORT: {{ mongo_port }}
       poll: 0
   roles:
     - ansible-role-nodejs 

@@ -1,15 +1,16 @@
 
-- hosts: {{ ctx.node.name }}
+- hosts: {{ hosts }}
   tasks:
     - name: downloading Stouts.mongodb archive
-      get_url: url=https://github.com/Stouts/Stouts.mongodb/archive/2.1.0.tar.gz dest=/tmp/{{ ctx.execution_id }}/Stouts.mongodb.tar.gz
+      get_url: url=https://github.com/Stouts/Stouts.mongodb/archive/{{ mongo_ver }}.tar.gz dest=/home/{{ home_dir }}/Stouts.mongodb.tar.gz
     - name: Unarchiving Stouts.mongodb Package
-      unarchive: src=/tmp/{{ ctx.execution_id }}/Stouts.mongodb.tar.gz dest=/tmp/{{ ctx.execution_id }}/ansible/roles
+      unarchive: src=/home/{{ home_dir }}/Stouts.mongodb.tar.gz dest=/etc/ansible/roles
     - name: renaming roles
-      command: mv /tmp/{{ ctx.execution_id }}/ansible/roles/Stouts.mongodb-2.1.0 /tmp/{{ ctx.execution_id }}/ansible/roles/Stouts.mongodb
+      command: mv /etc/ansible/roles/Stouts.mongodb-{{ mongo_ver }} /etc/ansible/roles/Stouts.mongodb
     - name: downloading ansible-role-nodejs archive
-      get_url: url=https://github.com/geerlingguy/ansible-role-nodejs/archive/1.2.0.tar.gz dest=/tmp/{{ ctx.execution_id }}/ansible-role-nodejs.tar.gz
+      get_url: url=https://github.com/geerlingguy/ansible-role-nodejs/archive/{{ nodejs_ver }}.tar.gz dest=/home/{{ home_dir }}/ansible-role-nodejs.tar.gz
     - name: Unarchiving ansible-role-nodejs Package
-      unarchive: src=/tmp/{{ ctx.execution_id }}/ansible-role-nodejs.tar.gz dest=/tmp/{{ ctx.execution_id }}/ansible/roles
+      unarchive: src=/home/{{ home_dir }}/ansible-role-nodejs.tar.gz dest=/etc/ansible/roles
     - name: renaming roles
-      command: mv /tmp/{{ ctx.execution_id }}/ansible/roles/ansible-role-nodejs-1.2.0 /tmp/{{ ctx.execution_id }}/ansible/roles/ansible-role-nodejs
+      command: mv /etc/ansible/roles/ansible-role-nodejs-{{ nodejs_ver }} /etc/ansible/roles/ansible-role-nodejs
+

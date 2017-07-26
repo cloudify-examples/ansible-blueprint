@@ -1,7 +1,14 @@
 # /tmp/deployment/ansible/dbservers.yaml
 
-- hosts: {{ ctx.source.node.name }}
+- hosts: {{ hosts }}
   roles:
     - Stouts.mongodb
+  sudo: yes
   vars:
-    mongodb_conf_port: {{ ctx.source.node.properties.port }}
+    mongodb_conf_port: {{ port }}
+  pre_tasks:
+    # fix mongo service config
+    - name: install mongo systemd service (fix)
+      copy:
+        src: ./roles/Stouts.mongodb/templates/mongod.service.j2
+        dest: /etc/systemd/system/mongod.service
