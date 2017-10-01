@@ -167,15 +167,26 @@ node_templates:
             priority: 102
             access: Allow
             direction: Inbound
-        - name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix},mysql]}
+        - name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix},application]}
           properties:
-            description: MySQL access
+            description: Application access
             protocol: Tcp
             sourcePortRange: '*'
-            destinationPortRange: 3306
+            destinationPortRange: 8080
             sourceAddressPrefix: '*'
             destinationAddressPrefix: '*'
             priority: 105
+            access: Allow
+            direction: Inbound
+        - name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix},mongodb]}
+          properties:
+            description: MongoDB access
+            protocol: Tcp
+            sourcePortRange: '*'
+            destinationPortRange: 27017
+            sourceAddressPrefix: '*'
+            destinationAddressPrefix: '*'
+            priority: 106
             access: Allow
             direction: Inbound
     relationships:
