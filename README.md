@@ -1,7 +1,8 @@
 [![Build Status](https://circleci.com/gh/cloudify-examples/ansible-blueprint.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/cloudify-examples/ansible-blueprint)
 
 # Ansible Blueprint
-An example Ansible Blueprint.
+
+Demonstrates working with Cloudify and Ansible.
 
 *Requirements:*
 
@@ -23,4 +24,3 @@ This is an example. It creates a new Ansible server, however in most scenarios, 
 *Uninstallation:*
 
 1. Run `cfy uninstall --allow-custom-parameters -p ignore_failure=true demo`
-

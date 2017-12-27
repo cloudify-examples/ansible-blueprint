@@ -100,7 +100,7 @@ node_templates:
               fabric_env: &fabric_env
                 host_string: { get_attribute: [ host, ip ] }
                 user: { get_input: agent_user }
-                key: { get_secret: agent_key_private }
+                key: { get_input: agent_key_private }
               commands:
                 - concat:
                   - 'ansible-playbook '
@@ -203,7 +203,7 @@ node_templates:
     properties:
       resource_config:
         file_path: { get_input: ansible_private_key_file }
-        file_content: { get_secret: agent_key_private }
+        file_content: { get_input: agent_key_private }
         file_permissions: '0600'
     relationships:
       - type: cloudify.relationships.contained_in

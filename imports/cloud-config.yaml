@@ -1,3 +1,10 @@
+inputs:
+
+  agent_key_public:
+    description: >
+      The content of the agent's public key.
+    default: { get_secret: agent_key_public }
+
 node_templates:
 
   # This is a new ansible machine, so ansible must be installed.
