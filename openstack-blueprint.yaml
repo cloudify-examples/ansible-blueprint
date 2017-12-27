@@ -29,6 +29,16 @@ inputs:
     type: string
     default: centos
 
+  agent_key_private:
+    description: >
+      The content of the agent's private key.
+    default: { get_secret: agent_key_private }
+
+  agent_key_public:
+    description: >
+      The content of the agent's public key.
+    default: { get_secret: agent_key_public }
+
 dsl_definitions:
 
   openstack_config: &openstack_config
@@ -48,7 +58,7 @@ node_templates:
           user: { get_input: agent_user }
           install_method: remote
           port: 22
-          key: { get_secret: agent_key_private }
+          key: { get_input: agent_key_private }
       server:
         key_name: ''
         image: ''
