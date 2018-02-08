@@ -5,6 +5,7 @@ node_templates:
     type: cloudify.nodes.CloudInit.CloudConfig
     properties:
       resource_config:
+        hostname: ansiblehost
         groups:
         - wheel
         - mongodb

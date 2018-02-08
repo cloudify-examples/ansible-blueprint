@@ -1,58 +1,76 @@
 tosca_definitions_version: cloudify_dsl_1_3
 
 imports:
-  - https://raw.githubusercontent.com/cloudify-cosmo/cloudify-manager/4.2/resources/rest-service/cloudify/types/types.yaml
-  - https://raw.githubusercontent.com/cloudify-cosmo/cloudify-azure-plugin/1.4.3/plugin.yaml
-  - https://raw.githubusercontent.com/cloudify-cosmo/cloudify-fabric-plugin/1.5/plugin.yaml
-  - https://raw.githubusercontent.com/cloudify-cosmo/cloudify-diamond-plugin/1.3.5/plugin.yaml
+  - http://www.getcloudify.org/spec/cloudify/4.2/types.yaml
+  - http://www.getcloudify.org/spec/utilities-plugin/1.4.5/plugin.yaml
+  - http://www.getcloudify.org/spec/azure-plugin/1.5.1/plugin.yaml
+  - http://www.getcloudify.org/spec/fabric-plugin/1.5.1/plugin.yaml
   - imports/ansible.yaml
 
 inputs:
-
-  resource_prefix:
-    default: ansible
-
-  resource_suffix:
-    default: '0'
-
-  retry_after:
-    type: integer
-    default: 60
-
-  size:
-    default: Standard_A2
 
   image:
     default:
       publisher: OpenLogic
       offer: CentOS
-      sku: '7.3'
+      sku: '7-CI'
       version: latest
+
+  size:
+    default: Standard_A0
+
+  resource_prefix:
+    default: ansible
+
+  resource_suffix:
+    default: '1'
+
+  retry_after:
+    type: integer
+    default: 60
+
+  location:
+    default: { get_secret: azure_location }
 
   agent_user:
     description: The user name of the agent on the instance created from the image.
-    default: centos # currently this is required
+    default: centos
+
+  agent_key_public:
+    default: { get_secret: agent_key_public }
+
+  agent_key_private:
+    default: { get_secret: agent_key_private }
 
   ssh_public_keys:
     description: the public key
     default:
     - path: {concat:[ '/home/', { get_input: agent_user }, '/.ssh/authorized_keys' ]}
-      keyData: { get_secret: agent_key_public }
+      keyData: { get_input: agent_key_public }
+
+  manager_network:
+    default: external
+
+  network_deployment_name:
+    default: azure-example-network
+
+  host_ip:
+    default: { get_attribute: [ host, public_ip ] }
 
 dsl_definitions:
 
   azure_config: &azure_config
-    subscription_id: { get_secret: subscription_id }
-    tenant_id: { get_secret: tenant_id }
-    client_id: { get_secret: client_id }
-    client_secret: { get_secret: client_secret }
+    subscription_id: { get_secret: azure_subscription_id }
+    tenant_id: { get_secret: azure_tenant_id }
+    client_id: { get_secret: azure_client_id }
+    client_secret: { get_secret: azure_client_secret }
 
 node_templates:
 
   ansible_requirements:
     type: cloudify.azure.nodes.compute.VirtualMachineExtension
     properties:
-      location: { get_secret: location }
+      location: { get_secret: azure_location }
       retry_after: { get_input: retry_after }
       azure_config: *azure_config
     interfaces:
@@ -106,7 +124,7 @@ node_templates:
   host:
     type: cloudify.azure.nodes.compute.VirtualMachine
     properties:
-      location: { get_secret: location }
+      location: { get_secret: azure_location }
       retry_after: { get_input: retry_after }
       os_family: linux
       azure_config: *azure_config
@@ -115,10 +133,11 @@ node_templates:
         storageProfile: {}
         osProfile: {}
       agent_config:
+        network: { get_input: manager_network }
+        install_method: init_script
         user: { get_input: agent_user }
-        install_method: remote
         port: 22
-        key: { get_secret: agent_key_private }
+        key: { get_input: agent_key_private }
     relationships:
     - type: cloudify.azure.relationships.contained_in_resource_group
       target: resource_group
@@ -146,67 +165,10 @@ node_templates:
                     publicKeys: { get_input: ssh_public_keys }
                   disablePasswordAuthentication: true
 
-  network_security_group:
-    type: cloudify.azure.nodes.network.NetworkSecurityGroup
-    properties:
-      name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix}]}
-      location: { get_secret: location }
-      azure_config: *azure_config
-      retry_after: { get_input: retry_after }
-      resource_config:
-        securityRules:
-        - name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix},ssh]}
-          properties:
-            description: SSH access
-            protocol: Tcp
-            sourcePortRange: '*'
-            destinationPortRange: 22
-            sourceAddressPrefix: '*'
-            destinationAddressPrefix: '*'
-            priority: 102
-            access: Allow
-            direction: Inbound
-        - name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix},application]}
-          properties:
-            description: Application access
-            protocol: Tcp
-            sourcePortRange: '*'
-            destinationPortRange: 8080
-            sourceAddressPrefix: '*'
-            destinationAddressPrefix: '*'
-            priority: 105
-            access: Allow
-            direction: Inbound
-        - name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix},mongodb]}
-          properties:
-            description: MongoDB access
-            protocol: Tcp
-            sourcePortRange: '*'
-            destinationPortRange: 27017
-            sourceAddressPrefix: '*'
-            destinationAddressPrefix: '*'
-            priority: 106
-            access: Allow
-            direction: Inbound
-    relationships:
-    - type: cloudify.azure.relationships.contained_in_resource_group
-      target: resource_group
-
-  availability_set:
-    type: cloudify.azure.nodes.compute.AvailabilitySet
-    properties:
-      name: {concat:[{get_input: resource_prefix},availset,{get_input: resource_suffix}]}
-      location: { get_secret: location }
-      azure_config: *azure_config
-      retry_after: { get_input: retry_after }
-    relationships:
-    - type: cloudify.azure.relationships.contained_in_resource_group
-      target: resource_group
-
   host_nic:
     type: cloudify.azure.nodes.network.NetworkInterfaceCard
     properties:
-      location: { get_secret: location }
+      location: { get_secret: azure_location }
       azure_config: *azure_config
       retry_after: { get_input: retry_after }
     relationships:
@@ -220,66 +182,69 @@ node_templates:
   host_nic_ip_cfg:
     type: cloudify.azure.nodes.network.IPConfiguration
     properties:
-      location: { get_secret: location }
+      location: { get_secret: azure_location }
       azure_config: *azure_config
       retry_after: { get_input: retry_after }
       resource_config:
         privateIPAllocationMethod: Dynamic
     relationships:
-    - type: cloudify.azure.relationships.contained_in_resource_group
-      target: resource_group
     - type: cloudify.azure.relationships.ip_configuration_connected_to_subnet
       target: subnet
     - type: cloudify.azure.relationships.ip_configuration_connected_to_public_ip
       target: ip
+    - type: cloudify.relationships.contained_in
+      target: azure
 
-  subnet:
-    type: cloudify.azure.nodes.network.Subnet
+  network_security_group:
+    type: cloudify.azure.nodes.network.NetworkSecurityGroup
     properties:
-      resource_group_name: { get_secret: mgr_resource_group_name }
-      name: { get_secret: mgr_subnet_name }
-      azure_config: *azure_config
-      use_external_resource: true
-      location: { get_secret: location }
-    relationships:
-    - type: cloudify.azure.relationships.contained_in_virtual_network
-      target: virtual_network
-
-  virtual_network:
-    type: cloudify.azure.nodes.network.VirtualNetwork
-    properties:
-      resource_group_name: { get_secret: mgr_resource_group_name }
-      name: { get_secret: mgr_virtual_network_name }
-      azure_config: *azure_config
-      use_external_resource: true
-      location: { get_secret: location }
-    relationships:
-    - type: cloudify.azure.relationships.contained_in_resource_group
-      target: resource_group
-
-  storage_account:
-    type: cloudify.azure.nodes.storage.StorageAccount
-    properties:
-      location: { get_secret: location }
+      name: {concat:[{get_input: resource_prefix},nsg,{get_input: resource_suffix}]}
+      location: { get_secret: azure_location }
       azure_config: *azure_config
       retry_after: { get_input: retry_after }
       resource_config:
-        accountType: Standard_LRS
+        securityRules:
+        - name: ssh
+          properties:
+            description: SSH access
+            protocol: Tcp
+            sourcePortRange: '*'
+            destinationPortRange: 22
+            sourceAddressPrefix: '*'
+            destinationAddressPrefix: '*'
+            priority: 101
+            access: Allow
+            direction: Inbound
+        - name: nodejs
+          properties:
+            description: NodeJS access
+            protocol: Tcp
+            sourcePortRange: '*'
+            destinationPortRange: { get_input: nodejs_port }
+            sourceAddressPrefix: '*'
+            destinationAddressPrefix: '*'
+            priority: 102
+            access: Allow
+            direction: Inbound
+        - name: mongo
+          properties:
+            description: MongoDB access
+            protocol: Tcp
+            sourcePortRange: '*'
+            destinationPortRange: { get_input: mongo_port }
+            sourceAddressPrefix: '*'
+            destinationAddressPrefix: '*'
+            priority: 103
+            access: Allow
+            direction: Inbound
     relationships:
     - type: cloudify.azure.relationships.contained_in_resource_group
       target: resource_group
-
-  resource_group:
-    type: cloudify.azure.nodes.ResourceGroup
-    properties:
-      name: {concat:[{get_input: resource_prefix},arg,{get_input: resource_suffix}]}
-      location: { get_secret: location }
-      azure_config: *azure_config
 
   ip:
     type: cloudify.azure.nodes.network.PublicIPAddress
     properties:
-      location: { get_secret: location }
+      location: { get_secret: azure_location }
       azure_config: *azure_config
       retry_after: { get_input: retry_after }
       resource_config:
@@ -288,8 +253,79 @@ node_templates:
     - type: cloudify.azure.relationships.contained_in_resource_group
       target: resource_group
 
-outputs:
+  availability_set:
+    type: cloudify.azure.nodes.compute.AvailabilitySet
+    properties:
+      name: {concat:[{get_input: resource_prefix},availset,{get_input: resource_suffix}]}
+      location: { get_secret: azure_location }
+      azure_config: *azure_config
+      retry_after: { get_input: retry_after }
+    relationships:
+    - type: cloudify.azure.relationships.contained_in_resource_group
+      target: resource_group
 
-  ip:
-    description: Public IP Address
-    value: { get_attribute: [ host, public_ip ] }
+  storage_account:
+    type: cloudify.azure.nodes.storage.StorageAccount
+    properties:
+      location: { get_secret: azure_location }
+      azure_config: *azure_config
+      retry_after: { get_input: retry_after }
+      resource_config:
+        accountType: Standard_LRS
+    relationships:
+    - type: cloudify.azure.relationships.contained_in_resource_group
+      target: resource_group
+
+  subnet:
+    type: cloudify.azure.nodes.network.Subnet
+    properties:
+      resource_group_name: { get_attribute: [ azure, deployment, outputs, resource_group ] }
+      name: { get_attribute: [ azure, deployment, outputs, public_subnet ] }
+      azure_config: *azure_config
+      use_external_resource: true
+      location: { get_attribute: [ azure, deployment, outputs, location ] }
+    relationships:
+    - type: cloudify.azure.relationships.contained_in_virtual_network
+      target: virtual_network
+
+  virtual_network:
+    type: cloudify.azure.nodes.network.VirtualNetwork
+    properties:
+      resource_group_name: { get_attribute: [ azure, deployment, outputs, resource_group ] }
+      name: { get_attribute: [ azure, deployment, outputs, virtual_network ] }
+      azure_config: *azure_config
+      use_external_resource: true
+      location: { get_attribute: [ azure, deployment, outputs, location ] }
+    relationships:
+    - type: cloudify.azure.relationships.contained_in_resource_group
+      target: resource_group
+
+  resource_group:
+    type: cloudify.azure.nodes.ResourceGroup
+    properties:
+      name: { get_attribute: [ azure, deployment, outputs, resource_group ] }
+      use_external_resource: true
+      location: { get_attribute: [ azure, deployment, outputs, location ] }
+      azure_config: *azure_config
+    relationships:
+    - type: cloudify.relationships.contained_in
+      target: azure
+
+  azure:
+    type: cloudify.nodes.DeploymentProxy
+    properties:
+      resource_config:
+        blueprint:
+          id: { get_input: network_deployment_name }
+          blueprint_archive: https://github.com/cloudify-examples/azure-example-network/archive/master.zip
+          main_file_name: simple-blueprint.yaml
+          external_resource: external
+        deployment:
+          id: { get_input: network_deployment_name }
+          outputs:
+            resource_group: resource_group
+            virtual_network: virtual_network
+            public_subnet: public_subnet
+            location: location
+          external_resource: external
+        reexecute: false

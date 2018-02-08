@@ -7,10 +7,10 @@ inputs:
     default: "4.1.1"
 
   mongo_port:
-    default: "27017"
+    default: 27017
 
   nodejs_port:
-    default: "8080"
+    default: 8080
 
   mongo_host:
     default: localhost
@@ -98,7 +98,7 @@ node_templates:
             implementation: fabric.fabric_plugin.tasks.run_commands
             inputs:
               fabric_env: &fabric_env
-                host_string: { get_attribute: [ host, ip ] }
+                host_string: { get_input: host_ip }
                 user: { get_input: agent_user }
                 key: { get_secret: agent_key_private }
               commands:
@@ -182,7 +182,7 @@ node_templates:
           inputs:
             resource_config:
               ansible:
-              - { get_attribute: [ host, ip ] }
+              - { get_input: host_ip }
 
   ansible.cfg:
     type: cloudify.nodes.ConfigFile
@@ -208,3 +208,14 @@ node_templates:
     relationships:
       - type: cloudify.relationships.contained_in
         target: host
+
+outputs:
+
+  endpoint:
+    description: Web application endpoint
+    value:
+      concat:
+      - 'http://'
+      - { get_input: host_ip }
+      - ':'
+      - '8080'
