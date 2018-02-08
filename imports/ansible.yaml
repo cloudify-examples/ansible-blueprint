@@ -182,7 +182,7 @@ node_templates:
           inputs:
             resource_config:
               ansible:
-              - { get_attribute: [ host, ip ] }
+              - { get_input: host_ip }
 
   ansible.cfg:
     type: cloudify.nodes.ConfigFile

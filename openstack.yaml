@@ -4,7 +4,7 @@ imports:
   - http://www.getcloudify.org/spec/cloudify/4.2/types.yaml
   - http://www.getcloudify.org/spec/utilities-plugin/1.4.5/plugin.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/2.6.0/plugin.yaml
-  - http://www.getcloudify.org/spec/fabric-plugin/1.5/plugin.yaml
+  - http://www.getcloudify.org/spec/fabric-plugin/1.5.1/plugin.yaml
   - imports/cloud-config.yaml
   - imports/ansible.yaml
 
@@ -27,7 +27,7 @@ inputs:
 
   image:
     description: >
-      An Openstack Image ID. Tested with a Ubuntu 14.04 image.
+      An Openstack Image ID. Tested with a Centos Core image.
     type: string
 
   flavor:
@@ -37,6 +37,9 @@ inputs:
 
   manager_network:
     default: external
+
+  network_deployment_name:
+    default: openstack-example-network
 
   host_ip:
     default: { get_attribute: [ ip, floating_ip_address ] }
@@ -148,12 +151,12 @@ node_templates:
     properties:
       resource_config:
         blueprint:
-          id: openstack-example-network
+          id: { get_input: network_deployment_name }
           blueprint_archive: https://github.com/cloudify-examples/openstack-example-network/archive/master.zip
           main_file_name: simple-blueprint.yaml
           external_resource: external
         deployment:
-          id: openstack-example-network
+          id: { get_input: network_deployment_name }
           outputs:
             external_network: external_network
             public_network_router: public_network_router

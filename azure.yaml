@@ -4,7 +4,7 @@ imports:
   - http://www.getcloudify.org/spec/cloudify/4.2/types.yaml
   - http://www.getcloudify.org/spec/utilities-plugin/1.4.5/plugin.yaml
   - http://www.getcloudify.org/spec/azure-plugin/1.5.1/plugin.yaml
-  - http://www.getcloudify.org/spec/fabric-plugin/1.5/plugin.yaml
+  - http://www.getcloudify.org/spec/fabric-plugin/1.5.1/plugin.yaml
   - imports/ansible.yaml
 
 inputs:
@@ -50,6 +50,9 @@ inputs:
 
   manager_network:
     default: external
+
+  network_deployment_name:
+    default: azure-example-network
 
   host_ip:
     default: { get_attribute: [ host, public_ip ] }
@@ -313,12 +316,12 @@ node_templates:
     properties:
       resource_config:
         blueprint:
-          id: azure-example-network
+          id: { get_input: network_deployment_name }
           blueprint_archive: https://github.com/cloudify-examples/azure-example-network/archive/master.zip
           main_file_name: simple-blueprint.yaml
           external_resource: external
         deployment:
-          id: azure-example-network
+          id: { get_input: network_deployment_name }
           outputs:
             resource_group: resource_group
             virtual_network: virtual_network

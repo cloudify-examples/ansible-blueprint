@@ -26,6 +26,8 @@ if __name__ == '__main__':
     config_parser = ConfigParser.ConfigParser()
 
     file_path = ctx.node.properties.get('file_path')
+    if not os.path.exists(os.path.dirname(file_path)):
+        raise OperationRetry('File doesn\'t exist yet: {0}'.format(file_path))
     resource_config = get_resource_config()
 
     if os.path.exists(file_path):
