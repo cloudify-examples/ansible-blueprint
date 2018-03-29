@@ -1,11 +1,10 @@
 tosca_definitions_version: cloudify_dsl_1_3
 
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.2/types.yaml
-  - http://www.getcloudify.org/spec/utilities-plugin/1.4.5/plugin.yaml
-  - http://www.getcloudify.org/spec/awssdk-plugin/1.2.0.3/plugin.yaml
-  - https://github.com/cloudify-cosmo/cloudify-aws-plugin/releases/download/1.5.1.2/plugin.yaml
-  - http://www.getcloudify.org/spec/fabric-plugin/1.5.1/plugin.yaml
+  - http://www.getcloudify.org/spec/cloudify/4.3/types.yaml
+  - plugin:cloudify-azure-plugin
+  - plugin:cloudify-utilities-plugin
+  - plugin:cloudify-fabric-plugin
   - imports/cloud-config.yaml
   - imports/ansible.yaml
 
